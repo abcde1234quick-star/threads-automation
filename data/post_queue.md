@@ -326,7 +326,7 @@ created: 2026-04-10
 ---
 id: 2026-04-10-017
 type: TYPE_B
-status: queued
+status: posted
 source: instagram
 topic: 崩れる人と崩れない人 下地前の待ち時間の差
 score_target: 手順型×数字でsaves狙い
