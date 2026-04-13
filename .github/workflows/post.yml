@@ -40,13 +40,31 @@ jobs:
           cache-dependency-path: scripts/requirements.txt
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install -r scripts/requirements.txt
 
       - name: Post one item
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
         run: python scripts/post_one.py
+
+      - name: Check queue count
+        id: queue_check
+        run: |
+          COUNT=$(python -c "
+          text = open('data/post_queue.md', encoding='utf-8').read()
+          print(text.count('status: queued'))
+          ")
+          echo "queued=$COUNT" >> $GITHUB_OUTPUT
+          echo "キュー残り: ${COUNT}件"
+
+      - name: Auto-generate posts if queue <= 5
+        if: ${{ fromJson(steps.queue_check.outputs.queued) <= 5 }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "キューが5件以下のため投稿を自動生成します..."
+          python scripts/weekly_job.py
 
       - name: Commit & push changes
         run: |
