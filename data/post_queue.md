@@ -279,7 +279,7 @@ Anua ドクダミ77トナー、2週間続けた。
 ---
 id: 2026-04-09-015
 type: TYPE_A
-status: queued
+status: posted
 source: instagram
 topic: 漆黒アイライン vs ダークブラウン 印象の違い
 score_target: ビフォーアフター想起×簡単な変化でsaves狙い
