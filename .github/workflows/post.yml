@@ -1,0 +1,59 @@
+name: Threads 投稿（1日10スロット）
+
+on:
+  schedule:
+    # JST = UTC+9  ／ すべてJSTで設計、UTCに変換
+    - cron: "18 22 * * *"   # slot01: 07:18 JST
+    - cron: "45 23 * * *"   # slot02: 08:45 JST
+    - cron: "23 1 * * *"    # slot03: 10:23 JST
+    - cron: "7 3 * * *"     # slot04: 12:07 JST
+    - cron: "41 4 * * *"    # slot05: 13:41 JST
+    - cron: "28 6 * * *"    # slot06: 15:28 JST
+    - cron: "12 8 * * *"    # slot07: 17:12 JST
+    - cron: "35 10 * * *"   # slot08: 19:35 JST
+    - cron: "8 12 * * *"    # slot09: 21:08 JST
+    - cron: "43 13 * * *"   # slot10: 22:43 JST
+  workflow_dispatch:         # 手動実行も可能
+
+# 同時実行を防ぐ（キューの競合防止）
+concurrency:
+  group: threads-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Post one item
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: python scripts/post_one.py
+
+      - name: Commit & push changes
+        run: |
+          git config user.name "threads-bot"
+          git config user.email "threads-bot@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet && echo "変更なし（スキップ判定）" && exit 0
+          git commit -m "auto: post $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M JST')"
+          git pull --rebase origin main
+          git push origin main
