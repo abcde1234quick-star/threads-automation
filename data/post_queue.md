@@ -504,7 +504,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-006
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: アイシャドウのブラウン20色持ってるけど、何が違うのかわからない
 created: 2026-04-13
