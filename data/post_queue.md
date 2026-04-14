@@ -351,7 +351,7 @@ created: 2026-04-10
 ---
 id: 2026-04-10-018
 type: TYPE_C
-status: queued
+status: posted
 source: instagram
 topic: 同じコスメなのに垢抜けない 順番と量の問題
 score_target: 共感×意外性でreplies狙い
