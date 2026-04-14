@@ -377,7 +377,7 @@ created: 2026-04-10
 ---
 id: 2026-04-13-001
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ヨジャドルメイク vs 白湯メイク 顔タイプ別の向き不向き
 created: 2026-04-13
