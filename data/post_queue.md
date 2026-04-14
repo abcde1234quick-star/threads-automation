@@ -526,7 +526,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-007
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ティントリップ vs グロス vs マット、落ちづらさで比較
 created: 2026-04-13
