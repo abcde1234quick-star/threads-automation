@@ -453,7 +453,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-004
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: BBクリーム vs クッションファンデ vs リキッドファンデ、時短志向で選ぶなら
 created: 2026-04-13
