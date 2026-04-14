@@ -480,7 +480,7 @@ BBクリーム：1日2〜3回
 ---
 id: 2026-04-13-005
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: 毛穴レス肌、フィルター抜きで実現できるの試してみた
 created: 2026-04-13
