@@ -553,7 +553,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-008
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: BBクリーム1本で完成させるメイク、実際何日続けてみた
 created: 2026-04-13
