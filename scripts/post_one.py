@@ -69,24 +69,36 @@ def parse_queue() -> list[dict]:
     )
     posts = []
     for m in pattern.finditer(text):
+        body_block = m.group(8)
+        # セルフリプライをHTMLコメントから抽出
+        self_reply = ""
+        reply_match = re.search(r'<!--\s*self_reply:\n(.*?)\n-->', body_block, re.DOTALL)
+        if reply_match:
+            self_reply = reply_match.group(1).strip()
+        # セルフリプライコメントを除いた本文
+        body = re.sub(r'\n*<!--\s*self_reply:.*?-->', '', body_block, flags=re.DOTALL).strip()
+
         posts.append({
             "id": m.group(2).strip(),
             "type": m.group(3).strip(),
             "source": m.group(4).strip(),
             "topic": m.group(5).strip(),
             "created": m.group(7).strip(),
-            "body": m.group(8).strip(),
-            "full_match": m.group(0),
+            "body": body,
+            "self_reply": self_reply,
         })
     return posts
 
 
 # ─── Threads API ──────────────────────────────────────────
 
-def create_container(text: str) -> str | None:
+def create_container(text: str, reply_to_id: str | None = None) -> str | None:
+    data = {"media_type": "TEXT", "text": text, "access_token": ACCESS_TOKEN}
+    if reply_to_id:
+        data["reply_to_id"] = reply_to_id
     resp = requests.post(
         f"{API}/{USER_ID}/threads",
-        data={"media_type": "TEXT", "text": text, "access_token": ACCESS_TOKEN},
+        data=data,
         timeout=30,
     )
     if resp.status_code != 200:
@@ -105,6 +117,20 @@ def publish_container(container_id: str) -> str | None:
         print(f"[ERROR] 投稿公開失敗: {resp.status_code} {resp.text}")
         return None
     return resp.json().get("id")
+
+
+def post_self_reply(reply_text: str, parent_post_id: str) -> str | None:
+    """本文投稿へのセルフリプライを投稿する"""
+    print(f"[セルフリプライ] 投稿中（{len(reply_text)}字）...")
+    container_id = create_container(reply_text, reply_to_id=parent_post_id)
+    if not container_id:
+        return None
+    print("30秒待機（セルフリプライ）...")
+    time.sleep(30)
+    reply_id = publish_container(container_id)
+    if reply_id:
+        print(f"[セルフリプライ完了] reply_id={reply_id}")
+    return reply_id
 
 
 # ─── ファイル更新 ──────────────────────────────────────────
@@ -127,17 +153,18 @@ def append_log(post: dict, post_id: str, count: int):
         f.write(entry)
 
 
-def append_history(post: dict, post_id: str):
+def append_history(post: dict, post_id: str, reply_id: str | None = None):
     now = jst_now()
     now_str = now.strftime("%Y-%m-%d %H:%M JST")
     fetch_after = (now + datetime.timedelta(hours=24)).isoformat()
+    reply_line = f"- reply_id: {reply_id}\n" if reply_id else ""
     entry = f"""
 ## {post['id']} | {now_str}
 
 - type: {post['type']}
 - topic: {post['topic']}
 - post_id: {post_id}
-- metrics_fetched: false
+{reply_line}- metrics_fetched: false
 - posted_at: {now.isoformat()}
 - fetch_after: {fetch_after}
 
@@ -193,10 +220,17 @@ def main():
 
     print(f"[完了] post_id={post_id}")
 
-    # 7. ファイル更新
+    # 7. セルフリプライ（テキストがある場合）
+    reply_id = None
+    if post.get("self_reply"):
+        reply_id = post_self_reply(post["self_reply"], post_id)
+    else:
+        print("[セルフリプライ] なし（スキップ）")
+
+    # 8. ファイル更新
     update_queue_status(post["id"])
     append_log(post, post_id, count + 1)
-    append_history(post, post_id)
+    append_history(post, post_id, reply_id)
 
     print(f"=== 完了 | 本日{count + 1}件目 ===")
 
