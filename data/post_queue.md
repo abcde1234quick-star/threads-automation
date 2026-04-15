@@ -678,7 +678,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-013
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 下地の値段、1000円 vs 3000円 vs 5000円、本当に差が出るか検証
 created: 2026-04-13
