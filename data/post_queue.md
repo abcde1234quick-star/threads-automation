@@ -601,7 +601,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-010
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: メイク直しの時間、毎日15分かかってるんだけど長い？
 created: 2026-04-13
