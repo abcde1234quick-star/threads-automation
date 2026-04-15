@@ -362,7 +362,7 @@ id: 2026-04-09-015
 type: TYPE_A
 - topic: 漆黒アイライン vs ダークブラウン 印象の違い
 - post_id: 18579069661052472
-- metrics_fetched: false
+- metrics_fetched: true
 - posted_at: 2026-04-13T21:32:31.372902+09:00
 - fetch_after: 2026-04-14T21:32:31.372902+09:00
 
@@ -377,6 +377,15 @@ type: TYPE_A
 コスメを変えなくても色だけで変わるの、コスパ最強かもしれない。
 
 今アイラインは何色使ってる？
+
+### メトリクス
+- 取得日時: 2026-04-15 21:24 JST
+- views: 10
+- likes: 0
+- replies: 0
+- reposts: 0
+- quotes: 0
+- **score: 10**
 
 ---
 
@@ -680,7 +689,7 @@ id: 2026-04-10-016
 type: TYPE_A
 - topic: ヨジャドルvs白湯メイク 顔タイプ別の向き不向き
 - post_id: 17896807599288358
-- metrics_fetched: false
+- metrics_fetched: true
 - posted_at: 2026-04-13T23:29:02.650519+09:00
 - fetch_after: 2026-04-14T23:29:02.650519+09:00
 
@@ -700,6 +709,15 @@ type: TYPE_A
 軸が違ってたのかもしれない。どっちが今っぽいかじゃなくて、どっちが「自分の顔に作用するか」で選ぶほうが正解に近そう。
 
 自分は求心派？遠心派？
+
+### メトリクス
+- 取得日時: 2026-04-15 21:24 JST
+- views: 13
+- likes: 0
+- replies: 0
+- reposts: 0
+- quotes: 0
+- **score: 13**
 
 ---
 
@@ -1029,7 +1047,7 @@ id: 2026-04-10-017
 type: TYPE_B
 - topic: 崩れる人と崩れない人 下地前の待ち時間の差
 - post_id: 18125887666606065
-- metrics_fetched: false
+- metrics_fetched: true
 - posted_at: 2026-04-14T07:42:33.793299+09:00
 - fetch_after: 2026-04-15T07:42:33.793299+09:00
 
@@ -1048,6 +1066,15 @@ type: TYPE_B
 待つことが習慣になってから、夕方の鏡が怖くなくなった。
 
 やってみた人いる？変化あった？
+
+### メトリクス
+- 取得日時: 2026-04-15 21:24 JST
+- views: 9
+- likes: 0
+- replies: 0
+- reposts: 0
+- quotes: 0
+- **score: 9**
 
 ---
 
@@ -1402,7 +1429,7 @@ id: 2026-04-10-018
 type: TYPE_C
 - topic: 同じコスメなのに垢抜けない 順番と量の問題
 - post_id: 18333698263301465
-- metrics_fetched: false
+- metrics_fetched: true
 - posted_at: 2026-04-14T09:10:22.802631+09:00
 - fetch_after: 2026-04-15T09:10:22.802631+09:00
 
@@ -1421,6 +1448,15 @@ type: TYPE_C
 道具の問題じゃなくて使い方の問題、だったのかもしれない。
 
 みんなコンシーラー、ファンデの前に使ってる？後に使ってる？
+
+### メトリクス
+- 取得日時: 2026-04-15 21:24 JST
+- views: 10
+- likes: 0
+- replies: 0
+- reposts: 0
+- quotes: 0
+- **score: 10**
 
 ---
 
