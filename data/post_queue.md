@@ -707,7 +707,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-014
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: SNSで見た色、店頭だと全然違う現象、これ誰もが経験してる？
 created: 2026-04-13
