@@ -654,7 +654,7 @@ created: 2026-04-13
 ---
 id: 2026-04-13-012
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: アイシャドウベース、塗る塗らないで発色が別物になった
 created: 2026-04-13
