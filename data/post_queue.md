@@ -805,7 +805,7 @@ vs
 ---
 id: 2026-04-15-003
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 同じコスメ使ってるのに垢抜けない、の答えが出た気がする
 created: 2026-04-15
