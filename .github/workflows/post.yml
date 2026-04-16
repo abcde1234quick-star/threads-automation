@@ -1,19 +1,19 @@
-name: Threads 投稿（1日10スロット）
+name: Threads 投稿（朝1回・夜2回）
 
 on:
   schedule:
-    # JST = UTC+9  ／ すべてJSTで設計、UTCに変換
-    - cron: "18 22 * * *"   # slot01: 07:18 JST
-    - cron: "45 23 * * *"   # slot02: 08:45 JST
-    - cron: "23 1 * * *"    # slot03: 10:23 JST
-    - cron: "7 3 * * *"     # slot04: 12:07 JST
-    - cron: "41 4 * * *"    # slot05: 13:41 JST
-    - cron: "28 6 * * *"    # slot06: 15:28 JST
-    - cron: "12 8 * * *"    # slot07: 17:12 JST
-    - cron: "35 10 * * *"   # slot08: 19:35 JST
-    - cron: "8 12 * * *"    # slot09: 21:08 JST
-    - cron: "43 13 * * *"   # slot10: 22:43 JST
-  workflow_dispatch:         # 手動実行も可能
+    # ── 朝セッション 8:00〜9:30 JST（3スロット）──────────────
+    - cron: "7 23 * * *"    # 08:07 JST（前日 23:07 UTC）
+    - cron: "43 23 * * *"   # 08:43 JST（前日 23:43 UTC）
+    - cron: "19 0 * * *"    # 09:19 JST（00:19 UTC）
+    # ── 夜セッション 18:00〜26:00 JST（6スロット）──────────────
+    - cron: "23 9 * * *"    # 18:23 JST（09:23 UTC）
+    - cron: "51 10 * * *"   # 19:51 JST（10:51 UTC）
+    - cron: "17 12 * * *"   # 21:17 JST（12:17 UTC）
+    - cron: "44 13 * * *"   # 22:44 JST（13:44 UTC）
+    - cron: "8 15 * * *"    # 00:08 JST（15:08 UTC）
+    - cron: "36 16 * * *"   # 01:36 JST（16:36 UTC）
+  workflow_dispatch:
 
 # 同時実行を防ぐ（キューの競合防止）
 concurrency:

@@ -39,27 +39,52 @@ def today_jst() -> str:
     return jst_now().strftime("%Y-%m-%d")
 
 
-# ─── 日次カウント ─────────────────────────────────────────
+# ─── セッション判定 ───────────────────────────────────────
+# 朝セッション: 8:00〜9:30 JST（上限1件）
+# 夜セッション: 18:00〜26:00 JST = 18:00〜翌02:00（上限2件）
 
-def get_today_count() -> int:
-    today = today_jst()
+SESSION_CAPS = {"morning": 1, "evening": 2}
+
+
+def get_session_info() -> tuple[str, str]:
+    """(session_name, session_date) を返す。
+    session_date は夜セッション跨ぎ用の基準日（18:00起算）。
+    """
+    now = jst_now()
+    hour = now.hour
+    today = now.strftime("%Y-%m-%d")
+    yesterday = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+
+    if 8 <= hour < 10:           # 8:00〜9:59 JST → 朝
+        return "morning", today
+    elif hour >= 18:              # 18:00〜23:59 JST → 夜（当日）
+        return "evening", today
+    elif hour < 2:                # 0:00〜1:59 JST → 夜（前日の夜セッション扱い）
+        return "evening", yesterday
+    else:
+        return "other", today
+
+
+def get_session_count(session: str, session_date: str) -> int:
+    """指定セッションの投稿件数をログから取得する。"""
     try:
         text = LOG_PATH.read_text(encoding="utf-8")
-        return text.count(f"[POST] {today}")
+        marker = f"session:{session} date:{session_date}"
+        return text.count(marker)
     except FileNotFoundError:
         return 0
 
 
-def should_post(count: int) -> bool:
-    """確率テーブルで投稿するか判定（1日5〜10件になるよう設計）"""
-    table = [(0, 0, 1.0), (1, 4, 0.90), (5, 7, 0.55), (8, 9, 0.20)]
-    for lo, hi, prob in table:
-        if lo <= count <= hi:
-            result = random.random() < prob
-            print(f"[判定] 本日{count}件目 → 確率{int(prob*100)}% → {'投稿' if result else 'スキップ'}")
-            return result
-    print(f"[スキップ] 本日の上限（{count}件）に達しました。")
-    return False
+def should_post(session: str, count: int) -> bool:
+    if session == "other":
+        print("[スキップ] 投稿時間外（朝8:00〜9:30・夜18:00〜26:00以外）")
+        return False
+    cap = SESSION_CAPS.get(session, 0)
+    if count >= cap:
+        print(f"[スキップ] {session}セッション上限に達しています（{count}/{cap}件）")
+        return False
+    print(f"[投稿] {session}セッション {count + 1}/{cap}件目")
+    return True
 
 
 # ─── キューパース ──────────────────────────────────────────
@@ -151,9 +176,9 @@ def update_queue_status(post_id: str):
     QUEUE_PATH.write_text(updated, encoding="utf-8")
 
 
-def append_log(post: dict, post_id: str, count: int):
+def append_log(post: dict, post_id: str, session: str, session_date: str, count: int):
     now_str = jst_now().strftime("%Y-%m-%d %H:%M JST")
-    entry = f"[POST] {now_str} | ID:{post['id']} | threads_id:{post_id} | 本日{count}件目\n"
+    entry = f"[POST] {now_str} | session:{session} date:{session_date} | ID:{post['id']} | threads_id:{post_id} | {session}{count}件目\n"
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(entry)
 
@@ -187,16 +212,20 @@ def append_history(post: dict, post_id: str, reply_id: str | None = None):
 def main():
     print(f"=== post_one.py 開始 {jst_now().strftime('%Y-%m-%d %H:%M JST')} ===")
 
-    # 1. ランダム遅延（人間らしい投稿タイミング）
-    delay = random.randint(0, 900)  # 0〜15分
+    # 1. セッション判定
+    session, session_date = get_session_info()
+    print(f"[セッション] {session} (基準日: {session_date})")
+
+    # 2. ランダム遅延（人間らしい投稿タイミング）
+    delay = random.randint(0, 1200)  # 0〜20分
     print(f"[遅延] {delay // 60}分{delay % 60}秒待機...")
     time.sleep(delay)
 
-    # 2. 本日の投稿件数チェック
-    count = get_today_count()
-    print(f"[カウント] 本日の投稿数: {count}件")
+    # 3. セッションの投稿件数チェック
+    count = get_session_count(session, session_date)
+    print(f"[カウント] {session}セッションの投稿数: {count}件")
 
-    if not should_post(count):
+    if not should_post(session, count):
         sys.exit(0)
 
     # 3. キューから1件取得
@@ -234,10 +263,10 @@ def main():
 
     # 8. ファイル更新
     update_queue_status(post["id"])
-    append_log(post, post_id, count + 1)
+    append_log(post, post_id, session, session_date, count + 1)
     append_history(post, post_id, reply_id)
 
-    print(f"=== 完了 | 本日{count + 1}件目 ===")
+    print(f"=== 完了 | {session}セッション {count + 1}件目 ===")
 
 
 if __name__ == "__main__":
