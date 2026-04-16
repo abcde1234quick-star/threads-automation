@@ -890,7 +890,7 @@ vs
 ---
 id: 2026-04-15-006
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: アイシャドウ「2色派」「3色派」「4色派」で変わる使用時間
 created: 2026-04-15
