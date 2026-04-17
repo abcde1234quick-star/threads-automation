@@ -976,7 +976,7 @@ vs
 ---
 id: 2026-04-15-009
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: チーク「クリーム型」「パウダー型」「ティント型」 肌質別の選び方
 created: 2026-04-15
