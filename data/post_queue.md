@@ -947,7 +947,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-008
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: マスカラの落ちやすさ、下準備で8割決まる
 created: 2026-04-15
