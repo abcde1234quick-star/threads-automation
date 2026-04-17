@@ -923,7 +923,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-007
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 毛穴カバー力で選んでたけど、選び方が違った
 created: 2026-04-15
