@@ -1041,7 +1041,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-011
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: アイライン、引く位置で目の印象が3パターン
 created: 2026-04-15
