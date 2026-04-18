@@ -1013,7 +1013,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-010
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 高いコスメ買ったのに浮く感じ、原因が違った
 created: 2026-04-15
