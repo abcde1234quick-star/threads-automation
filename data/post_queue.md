@@ -1134,7 +1134,7 @@ SNS流行りと自分の肌って、実は別問題。
 ---
 id: 2026-04-15-014
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ファンデーション「リキッド」「クリーム」「パウダー」 季節別選択
 created: 2026-04-15
