@@ -1166,7 +1166,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-015
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: 眉毛、書き方より毛流れで変わる
 created: 2026-04-15
