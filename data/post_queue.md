@@ -1109,7 +1109,7 @@ created: 2026-04-15
 ---
 id: 2026-04-15-013
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 韓国コスメにハマったけど、全部合わなかった話
 created: 2026-04-15
