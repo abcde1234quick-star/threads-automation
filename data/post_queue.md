@@ -1233,7 +1233,7 @@ created: 2026-04-15
 ---
 id: 2026-04-19-001
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ヨジャドルメイク vs 白湯メイク、選ぶ基準がパーソナルカラーじゃなかった
 created: 2026-04-19
