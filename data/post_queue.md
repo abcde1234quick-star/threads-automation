@@ -1268,7 +1268,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-002
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: 崩れる人と崩れない人、下地の前にやってることが違った
 created: 2026-04-19
