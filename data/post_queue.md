@@ -1197,7 +1197,7 @@ vs
 ---
 id: 2026-04-15-016
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: リップ「マット」「グロス」「ティント」 雰囲気別の使い分け
 created: 2026-04-15
