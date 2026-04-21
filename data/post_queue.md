@@ -1331,7 +1331,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-004
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: BBクリーム vs クッションファンデ、朝時間が短い人向けはどっち
 created: 2026-04-19
