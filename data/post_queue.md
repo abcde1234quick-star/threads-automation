@@ -1302,7 +1302,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-003
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 同じコスメ使ってるのに垢抜けない、の理由
 created: 2026-04-19
