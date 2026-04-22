@@ -1423,7 +1423,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-007
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: アイシャドウの「発色しない」、捨てる前に試してほしいこと [テンプレ3（知らなかった情報差型）]
 created: 2026-04-19
