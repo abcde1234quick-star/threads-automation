@@ -26,6 +26,7 @@ HISTORY_PATH = DATA_DIR / "post-history.md"
 
 ACCESS_TOKEN = os.environ["THREADS_ACCESS_TOKEN"]
 USER_ID = os.environ["THREADS_USER_ID"]
+SLOT = os.environ.get("SLOT", "unknown")   # morning / evening1 / evening2
 API = "https://graph.threads.net/v1.0"
 
 
@@ -34,6 +35,19 @@ API = "https://graph.threads.net/v1.0"
 def jst_now() -> datetime.datetime:
     tz = datetime.timezone(datetime.timedelta(hours=9))
     return datetime.datetime.now(tz)
+
+
+# ─── スロットガード ────────────────────────────────────────
+
+def already_posted_today(slot: str) -> bool:
+    """本日このスロットが既に投稿済みか確認（二重投稿防止）"""
+    today = jst_now().strftime("%Y-%m-%d")
+    try:
+        text = LOG_PATH.read_text(encoding="utf-8")
+        marker = f"slot:{slot} date:{today}"
+        return marker in text
+    except FileNotFoundError:
+        return False
 
 
 # ─── キューパース ──────────────────────────────────────────
@@ -126,8 +140,10 @@ def update_queue_status(post_id: str):
 
 
 def append_log(post: dict, post_id: str):
-    now_str = jst_now().strftime("%Y-%m-%d %H:%M JST")
-    entry = f"[POST] {now_str} | ID:{post['id']} | threads_id:{post_id}\n"
+    now = jst_now()
+    now_str = now.strftime("%Y-%m-%d %H:%M JST")
+    today = now.strftime("%Y-%m-%d")
+    entry = f"[POST] {now_str} | slot:{SLOT} date:{today} | ID:{post['id']} | threads_id:{post_id}\n"
     with open(LOG_PATH, "a", encoding="utf-8") as f:
         f.write(entry)
 
@@ -160,13 +176,19 @@ def append_history(post: dict, post_id: str, reply_id: str | None = None):
 
 def main():
     print(f"=== post_one.py 開始 {jst_now().strftime('%Y-%m-%d %H:%M JST')} ===")
+    print(f"[スロット] {SLOT}")
 
-    # 1. ランダム遅延（±30分ウィンドウを均等に埋める）
+    # 1. スロットガード（本日このスロットが投稿済みなら即終了）
+    if already_posted_today(SLOT):
+        print(f"[スキップ] slot:{SLOT} は本日投稿済みです。二重投稿を防止して終了します。")
+        sys.exit(0)
+
+    # 2. ランダム遅延（±30分ウィンドウを均等に埋める）
     delay = random.randint(0, 3600)  # 0〜60分
     print(f"[遅延] {delay // 60}分{delay % 60}秒待機...")
     time.sleep(delay)
 
-    # 2. キューから1件取得
+    # 3. キューから1件取得
     posts = parse_queue()
     if not posts:
         print("[INFO] 投稿キューが空です。")
@@ -176,30 +198,30 @@ def main():
     print(f"[投稿] ID:{post['id']} TYPE:{post['type']}")
     print(f"本文({len(post['body'])}字): {post['body'][:60]}...")
 
-    # 3. コンテナ作成
+    # 4. コンテナ作成
     container_id = create_container(post["body"])
     if not container_id:
         sys.exit(1)
 
-    # 4. 30秒待機
+    # 5. 30秒待機
     print("30秒待機（API推奨）...")
     time.sleep(30)
 
-    # 5. 公開
+    # 6. 公開
     post_id = publish_container(container_id)
     if not post_id:
         sys.exit(1)
 
     print(f"[完了] post_id={post_id}")
 
-    # 6. セルフリプライ（テキストがある場合）
+    # 7. セルフリプライ（テキストがある場合）
     reply_id = None
     if post.get("self_reply"):
         reply_id = post_self_reply(post["self_reply"], post_id)
     else:
         print("[セルフリプライ] なし（スキップ）")
 
-    # 7. ファイル更新
+    # 8. ファイル更新
     update_queue_status(post["id"])
     append_log(post, post_id)
     append_history(post, post_id, reply_id)

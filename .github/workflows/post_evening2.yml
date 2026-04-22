@@ -1,0 +1,66 @@
+name: Threads 投稿 夜2（21:30±30分）
+
+on:
+  schedule:
+    - cron: "0 12 * * *"    # 21:00 JST（12:00 UTC）→ 0〜60分遅延で 21:00〜22:00 JST に投稿
+
+concurrency:
+  group: threads-evening2
+  cancel-in-progress: true   # 万一2重起動したら即キャンセル
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Post one item
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          SLOT: evening2
+        run: python scripts/post_one.py
+
+      - name: Check queue count
+        id: queue_check
+        run: |
+          COUNT=$(python -c "
+          text = open('data/post_queue.md', encoding='utf-8').read()
+          print(text.count('status: queued'))
+          ")
+          echo "queued=$COUNT" >> $GITHUB_OUTPUT
+          echo "キュー残り: ${COUNT}件"
+
+      - name: Auto-generate posts if queue <= 5
+        if: ${{ fromJson(steps.queue_check.outputs.queued) <= 5 }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "キューが5件以下のため投稿を自動生成します..."
+          python scripts/weekly_job.py
+
+      - name: Commit & push changes
+        run: |
+          git config user.name "threads-bot"
+          git config user.email "threads-bot@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet && echo "変更なし（スキップ判定）" && exit 0
+          git commit -m "auto: post $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M JST') [evening2]"
+          git pull --rebase origin main
+          git push origin main

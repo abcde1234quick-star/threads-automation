@@ -1,19 +1,12 @@
-name: Threads 投稿（1日3回固定）
+name: Threads 投稿 夜1（19:00±30分）
 
 on:
   schedule:
-    # ── 1回目: 08:00±30分 JST（07:30 JST 始動、0〜60分ランダム遅延）──
-    - cron: "30 22 * * *"   # 07:30 JST（前日 22:30 UTC）
-    # ── 2回目: 19:00±30分 JST（18:30 JST 始動、0〜60分ランダム遅延）──
-    - cron: "30 9 * * *"    # 18:30 JST（09:30 UTC）
-    # ── 3回目: 21:30±30分 JST（21:00 JST 始動、0〜60分ランダム遅延）──
-    - cron: "0 12 * * *"    # 21:00 JST（12:00 UTC）
-  workflow_dispatch:
+    - cron: "30 9 * * *"    # 18:30 JST（09:30 UTC）→ 0〜60分遅延で 18:30〜19:30 JST に投稿
 
-# 同時実行を防ぐ（キューの競合防止）
 concurrency:
-  group: threads-post
-  cancel-in-progress: false
+  group: threads-evening1
+  cancel-in-progress: true   # 万一2重起動したら即キャンセル
 
 jobs:
   post:
@@ -41,6 +34,7 @@ jobs:
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          SLOT: evening1
         run: python scripts/post_one.py
 
       - name: Check queue count
@@ -67,6 +61,6 @@ jobs:
           git config user.email "threads-bot@users.noreply.github.com"
           git add data/
           git diff --staged --quiet && echo "変更なし（スキップ判定）" && exit 0
-          git commit -m "auto: post $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M JST')"
+          git commit -m "auto: post $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M JST') [evening1]"
           git pull --rebase origin main
           git push origin main
