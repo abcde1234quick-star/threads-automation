@@ -1456,7 +1456,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-008
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: スキンケアの浸透、実際に待ち時間を意識するまで気づかなかった [テンプレ2（わかる！共感爆発型）]
 created: 2026-04-19
