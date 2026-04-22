@@ -1394,7 +1394,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-006
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 毛穴カバー、下地 vs コンシーラー vs ファンデ どれが効果的 [テンプレ2（わかる！共感爆発型）]
 created: 2026-04-19
