@@ -1489,7 +1489,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-009
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: チーク、オレンジ系 vs ピンク系 で悩むより「肌トーン」が判定基準だった [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-19
