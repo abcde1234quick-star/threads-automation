@@ -1547,7 +1547,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-011
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: マスカラ、ボリュームタイプ vs ロングタイプ、まつ毛の特徴で分かれる [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-19
