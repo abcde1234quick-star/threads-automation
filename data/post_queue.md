@@ -1520,7 +1520,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-010
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 美容液、何個も持ってるのに肌変わらない理由 [テンプレ2（わかる！共感爆発型）]
 created: 2026-04-19
