@@ -1,13 +1,13 @@
-name: Threads メトリクス取得（毎日21:00 JST）
+name: Threads メトリクス取得（毎日 22:00 JST）
 
 on:
   schedule:
-    - cron: "0 12 * * *"   # 21:00 JST = 12:00 UTC
+    - cron: "0 13 * * *"   # 22:00 JST（13:00 UTC）— post_evening2（12:00 UTC）と1時間ずらす
   workflow_dispatch:
 
 concurrency:
   group: threads-metrics
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   metrics:
@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: scripts/requirements.txt
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install -r scripts/requirements.txt   # requirements.txt で統一
 
       - name: Fetch metrics
         env:

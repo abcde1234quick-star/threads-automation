@@ -2,12 +2,13 @@ name: Threads 週次ジョブ（リサーチ＋投稿生成）
 
 on:
   schedule:
-    - cron: "0 22 * * 0"   # 月曜 07:00 JST（日曜 22:00 UTC）
-  workflow_dispatch:        # 手動実行も可能
+    - cron: "0 22 * * 0"    # 月曜 07:00 JST（日曜 22:00 UTC）— 定期生成
+    - cron: "0 15 * * *"    # 毎日 00:00 JST（15:00 UTC）— キュー補充チェック
+  workflow_dispatch:
 
 concurrency:
   group: threads-weekly
-  cancel-in-progress: false
+  cancel-in-progress: true   # 二重起動は即キャンセル
 
 jobs:
   weekly:
@@ -31,17 +32,31 @@ jobs:
       - name: Install dependencies
         run: pip install -r scripts/requirements.txt
 
+      - name: Check queue count
+        id: queue_check
+        run: |
+          COUNT=$(python -c "
+          text = open('data/post_queue.md', encoding='utf-8').read()
+          print(text.count('status: queued'))
+          ")
+          echo "queued=$COUNT" >> $GITHUB_OUTPUT
+          echo "キュー残り: ${COUNT}件"
+
       - name: Run weekly job
+        # 月曜定期 or キューが5件以下のときだけ実行
+        if: ${{ github.event.schedule == '0 22 * * 0' || github.event_name == 'workflow_dispatch' || fromJson(steps.queue_check.outputs.queued) <= 5 }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python scripts/weekly_job.py
+        run: |
+          echo "投稿生成を実行します（キュー残り: ${{ steps.queue_check.outputs.queued }}件）"
+          python scripts/weekly_job.py
 
       - name: Commit & push changes
         run: |
           git config user.name "threads-bot"
           git config user.email "threads-bot@users.noreply.github.com"
           git add data/
-          git diff --staged --quiet && echo "変更なし" && exit 0
+          git diff --staged --quiet && echo "変更なし（スキップ）" && exit 0
           git commit -m "weekly: 投稿生成 $(TZ='Asia/Tokyo' date '+%Y-%m-%d')"
           git pull --rebase origin main
           git push origin main
