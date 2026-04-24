@@ -1,6 +1,11 @@
 """
 Threads 1件投稿スクリプト（GitHub Actions用）
-1トリガー = 1投稿。スロットガードで二重投稿を防ぐ。
+1トリガー = 1投稿。スロットガード + CLAIM機構で二重投稿を防ぐ。
+
+SRE hardening:
+- SLOT 未設定なら起動時エラー（"unknown" フォールバックを廃止）
+- claim_slot() で API 呼び出し前にスロットを確保（TOCTOU 対策）
+- already_posted_today() が [POST] と [CLAIM] の両方を確認
 """
 
 import os
@@ -23,23 +28,80 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
+# SLOT バリデーション: 不正値なら起動時に即終了（ACCESS_TOKEN より先に評価）
+SLOT = os.environ.get("SLOT", "")
+_VALID_SLOTS = ("morning", "evening1", "evening2")
+if SLOT not in _VALID_SLOTS:
+    print(f"[ERROR] 環境変数 SLOT が未設定または不正: {SLOT!r}. 期待値: {_VALID_SLOTS}")
+    sys.exit(1)
+
 ACCESS_TOKEN = os.environ["THREADS_ACCESS_TOKEN"]
 USER_ID      = os.environ["THREADS_USER_ID"]
-SLOT         = os.environ.get("SLOT", "unknown")  # morning / evening1 / evening2
 API          = "https://graph.threads.net/v1.0"
 
 
 # ─── スロットガード ────────────────────────────────────────────
 def already_posted_today(slot: str) -> bool:
-    """本日このスロットで投稿済みか確認（二重投稿防止）。
-    遅延後に呼ぶことでレースウィンドウを最小化している。
+    """本日このスロットで投稿済み（[POST]）または確保済み（[CLAIM]）か確認。
+    [CLAIM] も確認することで claim_slot() との競合を検知する。
     """
     today = jst_now().strftime("%Y-%m-%d")
+    marker = f"slot:{slot} date:{today}"
     try:
-        text = LOG_PATH.read_text(encoding="utf-8")
-        return f"slot:{slot} date:{today}" in text
+        text  = LOG_PATH.read_text(encoding="utf-8")
+        lines = [l for l in text.splitlines() if marker in l]
+        return any(l.startswith("[POST]") or l.startswith("[CLAIM]") for l in lines)
     except FileNotFoundError:
         return False
+
+
+def claim_slot(slot: str) -> bool:
+    """API 呼び出し前にスロットを確保する（TOCTOU 対策）。
+
+    動作:
+    1. [CLAIM] マーカーをログに書き込む
+    2. 0.5 秒待って競合ジョブの書き込みを待つ
+    3. ログを再読して自分の CLAIM が先着かどうか確認
+
+    Returns:
+        True  = 自分が先着 → 投稿を進めてよい
+        False = 別ジョブが先着または既に投稿済み → スキップ
+    """
+    today = jst_now().strftime("%Y-%m-%d")
+    nonce = f"{time.monotonic():.6f}"  # このプロセス固有の識別子
+    claim_line = (
+        f"[CLAIM] {jst_now().strftime('%Y-%m-%d %H:%M:%S JST')} "
+        f"| slot:{slot} date:{today} | nonce:{nonce}\n"
+    )
+    with open(LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(claim_line)
+
+    time.sleep(0.5)  # 競合ジョブの書き込みを待つ
+
+    try:
+        text = LOG_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return False
+
+    marker = f"slot:{slot} date:{today}"
+    lines  = [l for l in text.splitlines() if marker in l]
+
+    # 既に [POST] がある → 別ジョブが投稿完了済み
+    if any(l.startswith("[POST]") for l in lines):
+        print(f"[CLAIM] 別ジョブが既に [POST] を記録済み。スキップ。")
+        return False
+
+    # [CLAIM] が複数ある → 先着順で判定
+    claims = [l for l in lines if l.startswith("[CLAIM]")]
+    if not claims:
+        print(f"[CLAIM] CLAIM エントリが見つからない（予期しない状態）。スキップ。")
+        return False
+
+    if nonce not in claims[0]:
+        print(f"[CLAIM] 別ジョブが先着。自分のノンス:{nonce[:8]}... スキップ。")
+        return False
+
+    return True
 
 
 # ─── Threads API ──────────────────────────────────────────────
@@ -129,12 +191,17 @@ def main() -> None:
     print(f"[遅延] {delay // 60}分{delay % 60}秒待機...")
     time.sleep(delay)
 
-    # 2. スロットガード（遅延後に判定することでレースウィンドウを最小化）
+    # 2. スロットガード（[POST] / [CLAIM] 両方を確認）
     if already_posted_today(SLOT):
-        print(f"[スキップ] slot:{SLOT} は本日投稿済み。二重投稿を防止して終了。")
+        print(f"[スキップ] slot:{SLOT} は本日投稿済みまたは確保済み。終了。")
         sys.exit(0)
 
-    # 3. キューから1件取得
+    # 3. スロット確保（TOCTOU 対策）― API 呼び出し前に [CLAIM] を書き込む
+    if not claim_slot(SLOT):
+        print(f"[スキップ] slot:{SLOT} のスロット確保に失敗。別ジョブが先着。終了。")
+        sys.exit(0)
+
+    # 4. キューから1件取得
     posts = parse_queue()
     if not posts:
         print("[INFO] 投稿キューが空です。")
@@ -144,30 +211,30 @@ def main() -> None:
     print(f"[投稿] ID:{post['id']} TYPE:{post['type']}")
     print(f"本文({len(post['body'])}字): {post['body'][:60]}...")
 
-    # 4. コンテナ作成
+    # 5. コンテナ作成
     container_id = create_container(post["body"])
     if not container_id:
         sys.exit(1)
 
-    # 5. 30秒待機（Threads API 推奨）
+    # 6. 30秒待機（Threads API 推奨）
     print("30秒待機（API推奨）...")
     time.sleep(30)
 
-    # 6. 公開
+    # 7. 公開
     post_id = publish_container(container_id)
     if not post_id:
         sys.exit(1)
 
     print(f"[完了] post_id={post_id}")
 
-    # 7. セルフリプライ
+    # 8. セルフリプライ
     reply_id = None
     if post.get("self_reply"):
         reply_id = post_self_reply(post["self_reply"], post_id)
     else:
         print("[セルフリプライ] なし（スキップ）")
 
-    # 8. ファイル更新
+    # 9. ファイル更新（[CLAIM] は [POST] の append_log が事実上上書きする）
     update_queue_status(post["id"])
     append_log(post, post_id)
     append_history(post, post_id, reply_id)

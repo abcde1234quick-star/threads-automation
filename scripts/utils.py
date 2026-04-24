@@ -3,9 +3,13 @@
 - 時刻・パス定数
 - post_queue.md パーサー（単一実装）
 - キュー更新（安全な正規表現）
+- atomic_write（クラッシュ耐性のあるファイル書き込み）
 """
 
 import re
+import os
+import shutil
+import tempfile
 import datetime
 from pathlib import Path
 
@@ -78,10 +82,25 @@ def parse_queue(text: str | None = None) -> list[dict]:
     return posts
 
 
+# ─── 原子的ファイル書き込み ────────────────────────────────────
+def atomic_write(path: Path, content: str) -> None:
+    """tempfile に書いて rename で入れ替える（POSIX 原子操作）。
+    途中クラッシュでもファイルが中途半端な状態にならない。
+    """
+    dir_ = path.parent
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", dir=dir_, delete=False, suffix=".tmp"
+    ) as tf:
+        tf.write(content)
+        tmp_path = tf.name
+    shutil.move(tmp_path, str(path))
+
+
 # ─── キュー更新（安全版）─────────────────────────────────────
 def update_queue_status(post_id: str) -> None:
     """指定 ID の status を queued → posted に変更する。
     DOTALL を使わず [^\\n]+ で行内マッチに限定し、誤マッチを防ぐ。
+    regex がマッチしない場合は [WARN] を出す（サイレント失敗を防止）。
     """
     content = QUEUE_PATH.read_text(encoding="utf-8")
     updated = re.sub(
@@ -91,4 +110,6 @@ def update_queue_status(post_id: str) -> None:
         r"\g<1>posted",
         content,
     )
-    QUEUE_PATH.write_text(updated, encoding="utf-8")
+    if updated == content:
+        print(f"[WARN] update_queue_status: ID '{post_id}' にマッチせず。ステータス未更新。")
+    atomic_write(QUEUE_PATH, updated)

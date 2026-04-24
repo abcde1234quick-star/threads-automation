@@ -10,7 +10,7 @@ import time
 import anthropic
 from pathlib import Path
 
-from utils import jst_now, QUEUE_PATH, parse_queue
+from utils import jst_now, QUEUE_PATH, parse_queue, atomic_write
 from config import TEMPLATES
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -149,7 +149,7 @@ def main() -> None:
             ng += 1
         time.sleep(1)
 
-    QUEUE_PATH.write_text(text, encoding="utf-8")
+    atomic_write(QUEUE_PATH, text)
     print(f"\n=== 完了 | 成功:{ok}件 / 失敗:{ng}件 ===")
 
 
