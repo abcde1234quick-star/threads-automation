@@ -2,6 +2,7 @@
 Threads メトリクス取得スクリプト（GitHub Actions用）
 post-history.md を読んで 24h 以上経過した投稿のメトリクスを取得する。
 スコア計算式は config.calc_score() に一元化。
+リプライ本文は reply_insights.md に蓄積（週次生成のフィードバックに使用）。
 """
 
 import os
@@ -10,8 +11,10 @@ import sys
 import datetime
 import requests
 
-from utils import jst_now, HISTORY_PATH
+from utils import jst_now, HISTORY_PATH, DATA_DIR
 from config import calc_score
+
+REPLY_INSIGHTS_PATH = DATA_DIR / "reply_insights.md"
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -77,6 +80,27 @@ def parse_targets(text: str) -> list[dict]:
     return targets
 
 
+# ─── リプライインサイト蓄積 ────────────────────────────────────
+def append_reply_insights(post: dict, replies: list[dict]) -> None:
+    """フォロワーのリプライ本文を reply_insights.md に追記する。
+    weekly_job.py が「フォロワーの関心・疑問」として生成プロンプトに使用する。
+    """
+    if not replies:
+        return
+    topic = post.get("topic", "不明")[:50]
+    lines = []
+    for r in replies:
+        text = r.get("text", "").strip()
+        if not text or len(text) < 5:
+            continue
+        ts = r.get("timestamp", "")[:10]
+        lines.append(f"- [{ts}] [{topic}] {text[:100]}")
+    if not lines:
+        return
+    with open(REPLY_INSIGHTS_PATH, "a", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
 # ─── history 更新 ─────────────────────────────────────────────
 def update_history(post: dict, metrics: dict, replies: list[dict]) -> None:
     content    = HISTORY_PATH.read_text(encoding="utf-8")
@@ -132,6 +156,7 @@ def main() -> None:
         replies = get_replies(post["post_id"])
         print(f"  リプライ: {len(replies)}件")
         update_history(post, metrics, replies)
+        append_reply_insights(post, replies)   # ← reply_insights.md に蓄積
         print("  → 更新完了")
         ok += 1
 

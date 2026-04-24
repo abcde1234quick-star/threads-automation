@@ -1,4 +1,4 @@
-name: Threads メトリクス取得（毎日 22:00 JST）
+name: Threads メトリクス取得 & パフォーマンス分析（毎日 22:00 JST）
 
 on:
   schedule:
@@ -35,6 +35,11 @@ jobs:
         env:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
         run: python scripts/fetch_metrics.py
+
+      - name: Analyze performance
+        # fetch_metrics.py が成功・失敗にかかわらず分析は常に実行
+        if: always()
+        run: python scripts/analyze_performance.py
 
       - name: Commit & push changes
         run: |
