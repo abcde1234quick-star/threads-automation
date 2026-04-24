@@ -1611,7 +1611,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-013
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: リップ、同じ色でも質感で顔の印象が変わる、気づきました？ [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-19
