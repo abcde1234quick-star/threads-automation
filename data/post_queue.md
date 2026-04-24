@@ -1643,7 +1643,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-014
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 日焼け止め、SPF vs PA、実際の使い分けは「外出時間」が基準だった [テンプレ3（知らなかった情報差型）]
 created: 2026-04-19
