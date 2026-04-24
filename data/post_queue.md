@@ -1577,7 +1577,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-012
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: ファンデーション、実際に塗布量を計測してみたら変わった [テンプレ3（知らなかった情報差型）]
 created: 2026-04-19
