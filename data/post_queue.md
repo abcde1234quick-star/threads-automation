@@ -1744,7 +1744,7 @@ created: 2026-04-19
 ---
 id: 2026-04-20-001
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ヨジャドルメイク vs 白湯メイク 顔タイプ別の向き不向き [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-20
