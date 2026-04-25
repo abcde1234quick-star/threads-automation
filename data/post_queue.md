@@ -1677,7 +1677,7 @@ SPF50+ PA++++推奨
 ---
 id: 2026-04-19-015
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: クレンジング、落とし切れてない感覚、時間意識したら解決した [テンプレ1（やりすぎNG逆張り型）]
 created: 2026-04-19
