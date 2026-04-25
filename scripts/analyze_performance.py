@@ -57,6 +57,10 @@ def parse_scored_posts() -> list[dict]:
         tmpl_m   = re.search(r"\[テンプレ(\d+)", topic)
         template = f"テンプレ{tmpl_m.group(1)}" if tmpl_m else "テンプレなし"
 
+        # スロット: 新フォーマット "- slot: morning" を直接読む（旧エントリは ""）
+        slot_m = re.search(r"(?:^|\n)-?\s*slot:\s*(morning|evening1|evening2)", block)
+        slot   = slot_m.group(1).strip() if slot_m else ""
+
         posts.append({
             "post_id":     post_id,
             "internal_id": header_m.group(1) if header_m else "",
@@ -64,6 +68,7 @@ def parse_scored_posts() -> list[dict]:
             "type":        type_m.group(1).strip() if type_m else "不明",
             "topic":       topic,
             "template":    template,
+            "slot":        slot,
         })
 
     return posts
@@ -110,7 +115,9 @@ def compute_type_stats(posts: list[dict]) -> dict[str, dict]:
 def compute_slot_stats(posts: list[dict], slot_map: dict[str, str]) -> dict[str, dict]:
     buckets: dict[str, list[int]] = defaultdict(list)
     for p in posts:
-        slot = slot_map.get(p["internal_id"], "unknown")
+        # 優先: history の - slot: フィールド（新フォーマット）
+        # フォールバック: post_log.md のスロットマップ（旧フォーマット）
+        slot = p.get("slot") or slot_map.get(p["internal_id"], "unknown")
         buckets[slot].append(p["score"])
     return {s: _stats(sc) for s, sc in buckets.items()}
 

@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: threads-weekly
-  cancel-in-progress: true   # 二重起動は即キャンセル
+  cancel-in-progress: false  # 実行中のジョブを中断しない（ファイル破損防止）
 
 jobs:
   weekly:
@@ -36,8 +36,9 @@ jobs:
         id: queue_check
         run: |
           COUNT=$(python -c "
-          text = open('data/post_queue.md', encoding='utf-8').read()
-          print(text.count('status: queued'))
+          import sys; sys.path.insert(0, 'scripts')
+          from utils import parse_queue
+          print(len(parse_queue()))
           ")
           echo "queued=$COUNT" >> $GITHUB_OUTPUT
           echo "キュー残り: ${COUNT}件"
@@ -47,6 +48,8 @@ jobs:
         if: ${{ github.event.schedule == '0 22 * * 0' || github.event_name == 'workflow_dispatch' || fromJson(steps.queue_check.outputs.queued) <= 5 }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE: ${{ github.event.schedule }}
         run: |
           echo "投稿生成を実行します（キュー残り: ${{ steps.queue_check.outputs.queued }}件）"
           python scripts/weekly_job.py

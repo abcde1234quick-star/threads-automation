@@ -44,6 +44,24 @@ def get_metrics(post_id: str) -> dict | None:
     return raw
 
 
+def get_self_reply_metrics(reply_id: str) -> dict | None:
+    """セルフリプライのメトリクスを取得する（views / likes / replies）。"""
+    resp = requests.get(
+        f"{API}/{reply_id}/insights",
+        params={"metric": "views,likes,replies,reposts,quotes", "access_token": TOKEN},
+        timeout=20,
+    )
+    if resp.status_code != 200:
+        print(f"  [self_reply metrics] {reply_id}: {resp.status_code} {resp.text[:80]}")
+        return None
+    raw: dict = {}
+    for item in resp.json().get("data", []):
+        vals = item.get("values", [])
+        if vals:
+            raw[item["name"]] = vals[0].get("value", 0)
+    return raw if raw else None
+
+
 def get_replies(post_id: str) -> list[dict]:
     resp = requests.get(
         f"{API}/{post_id}/replies",
@@ -77,11 +95,13 @@ def parse_targets(text: str) -> list[dict]:
                     continue
             except ValueError:
                 pass
-        topic_m = re.search(r"- topic:\s*(.+)", block)
+        topic_m    = re.search(r"- topic:\s*(.+)", block)
+        reply_id_m = re.search(r"- reply_id:\s*(\d{10,})", block)
         targets.append({
-            "post_id": post_id_m.group(1),
-            "topic":   topic_m.group(1).strip() if topic_m else "不明",
-            "block":   block,
+            "post_id":  post_id_m.group(1),
+            "topic":    topic_m.group(1).strip() if topic_m else "不明",
+            "reply_id": reply_id_m.group(1) if reply_id_m else None,
+            "block":    block,
         })
     return targets
 
@@ -108,7 +128,12 @@ def append_reply_insights(post: dict, replies: list[dict]) -> None:
 
 
 # ─── history 更新 ─────────────────────────────────────────────
-def update_history(post: dict, metrics: dict, replies: list[dict]) -> None:
+def update_history(
+    post: dict,
+    metrics: dict,
+    replies: list[dict],
+    self_reply_metrics: dict | None = None,
+) -> None:
     content    = HISTORY_PATH.read_text(encoding="utf-8")
     fetched_at = jst_now().strftime("%Y-%m-%d %H:%M JST")
 
@@ -123,6 +148,14 @@ def update_history(post: dict, metrics: dict, replies: list[dict]) -> None:
         f"- quotes: {metrics.get('quotes', 0)}",
         f"- **score: {metrics.get('score', 0)}**",
     ]
+    if self_reply_metrics:
+        lines += [
+            "",
+            "### セルフリプライ メトリクス",
+            f"- sr_views: {self_reply_metrics.get('views', 0)}",
+            f"- sr_likes: {self_reply_metrics.get('likes', 0)}",
+            f"- sr_replies: {self_reply_metrics.get('replies', 0)}",
+        ]
     if replies:
         lines += ["", "### リプライ一覧"]
         for r in replies:
@@ -165,7 +198,16 @@ def main() -> None:
         )
         replies = get_replies(post["post_id"])
         print(f"  リプライ: {len(replies)}件")
-        update_history(post, metrics, replies)
+        # セルフリプライメトリクス
+        self_reply_metrics = None
+        if post.get("reply_id"):
+            self_reply_metrics = get_self_reply_metrics(post["reply_id"])
+            if self_reply_metrics:
+                print(
+                    f"  セルフリプライ: views:{self_reply_metrics.get('views',0)} "
+                    f"likes:{self_reply_metrics.get('likes',0)}"
+                )
+        update_history(post, metrics, replies, self_reply_metrics)
         append_reply_insights(post, replies)   # ← reply_insights.md に蓄積
         print("  → 更新完了")
         ok += 1

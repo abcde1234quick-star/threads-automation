@@ -105,6 +105,28 @@ def claim_slot(slot: str) -> bool:
 
 
 # ─── Threads API ──────────────────────────────────────────────
+def _check_token_error(resp: requests.Response, context: str) -> None:
+    """401 / 190 エラーをトークン失効として検知し、即 sys.exit(2) する。"""
+    if resp.status_code == 401:
+        print(
+            f"[ERROR] {context}: 401 Unauthorized — アクセストークンが失効しています。\n"
+            f"  GitHub Secrets の THREADS_ACCESS_TOKEN を更新してください。"
+        )
+        sys.exit(2)
+    # Threads API は一部の認証エラーを 200 ではなく error.code=190 で返す
+    try:
+        err = resp.json().get("error", {})
+        if err.get("code") == 190:
+            print(
+                f"[ERROR] {context}: error.code=190 — トークン失効またはパーミッション不足。\n"
+                f"  GitHub Secrets の THREADS_ACCESS_TOKEN を更新してください。\n"
+                f"  詳細: {err.get('message', '')}"
+            )
+            sys.exit(2)
+    except Exception:
+        pass
+
+
 def create_container(text: str, reply_to_id: str | None = None) -> str | None:
     data = {"media_type": "TEXT", "text": text, "access_token": ACCESS_TOKEN}
     if reply_to_id:
@@ -113,6 +135,7 @@ def create_container(text: str, reply_to_id: str | None = None) -> str | None:
         f"{API}/{USER_ID}/threads", data=data, timeout=30
     )
     if resp.status_code != 200:
+        _check_token_error(resp, "コンテナ作成")
         print(f"[ERROR] コンテナ作成失敗: {resp.status_code} {resp.text}")
         return None
     return resp.json().get("id")
@@ -125,6 +148,7 @@ def publish_container(container_id: str) -> str | None:
         timeout=30,
     )
     if resp.status_code != 200:
+        _check_token_error(resp, "投稿公開")
         print(f"[ERROR] 投稿公開失敗: {resp.status_code} {resp.text}")
         return None
     return resp.json().get("id")
@@ -166,6 +190,7 @@ def append_history(post: dict, post_id: str, reply_id: str | None = None) -> Non
 ## {post['id']} | {now_str}
 
 - type: {post['type']}
+- slot: {SLOT}
 - topic: {post['topic']}
 - post_id: {post_id}
 {reply_line}- metrics_fetched: false

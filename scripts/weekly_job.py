@@ -4,6 +4,8 @@
 2. analyze_performance.py の出力（performance_summary.md）を読み込む
 3. 高スコア投稿 + リプライインサイト をフィードバックとして取得
 4. Claude API で 15 件の投稿を生成（弱いテンプレを自動排除）→ post_queue.md に追加
+
+冪等性: 同日2回実行防止（WEEKLY_FORCE=1 で強制上書き）
 """
 
 import os
@@ -14,16 +16,37 @@ from collections import Counter
 import anthropic
 from duckduckgo_search import DDGS
 
-from utils import jst_now, DATA_DIR, KNOWLEDGE_DIR, HISTORY_PATH, QUEUE_PATH
+from utils import jst_now, DATA_DIR, KNOWLEDGE_DIR, HISTORY_PATH, QUEUE_PATH, atomic_write
 from config import TEMPLATES
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ANTHROPIC_API_KEY  = os.environ["ANTHROPIC_API_KEY"]
-SUMMARY_PATH       = DATA_DIR / "performance_summary.md"
-TREND_HISTORY_PATH = DATA_DIR / "trend_history.md"
+ANTHROPIC_API_KEY   = os.environ["ANTHROPIC_API_KEY"]
+SUMMARY_PATH        = DATA_DIR / "performance_summary.md"
+TREND_HISTORY_PATH  = DATA_DIR / "trend_history.md"
 REPLY_INSIGHTS_PATH = DATA_DIR / "reply_insights.md"
+GENERATION_LOG_PATH = DATA_DIR / "generation_log.md"
+
+
+# ─── 冪等性チェック ───────────────────────────────────────────────
+def already_generated_today() -> bool:
+    """本日既に weekly_job.py が実行済みか確認する。"""
+    if not GENERATION_LOG_PATH.exists():
+        return False
+    today = jst_now().strftime("%Y-%m-%d")
+    try:
+        return f"[GENERATED] {today}" in GENERATION_LOG_PATH.read_text(encoding="utf-8")
+    except Exception:
+        return False
+
+
+def record_generation() -> None:
+    """実行ログに本日の生成を記録する。"""
+    now = jst_now()
+    entry = f"[GENERATED] {now.strftime('%Y-%m-%d')} | {now.strftime('%H:%M JST')}\n"
+    with open(GENERATION_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(entry)
 
 
 # ─── リサーチ ──────────────────────────────────────────────────────
@@ -63,13 +86,11 @@ def detect_rising_keywords(current_research: str) -> list[str]:
     except Exception:
         return []
 
-    # 直近2週分のブロックを取得（最新は除く）
     blocks = re.split(r"\n## \d{4}-\d{2}-\d{2}\n", history)
     if len(blocks) < 2:
         return []
     prev_text = " ".join(blocks[-3:-1]) if len(blocks) >= 3 else blocks[-2]
 
-    # 簡易キーワード抽出（2文字以上の日本語 or 英単語）
     def extract_keywords(text: str) -> Counter:
         words = re.findall(r"[ァ-ヶー一-龥]{2,}|[A-Za-z]{3,}", text)
         return Counter(words)
@@ -80,7 +101,7 @@ def detect_rising_keywords(current_research: str) -> list[str]:
     rising = []
     for word, count in cur_count.most_common(50):
         prev = prev_count.get(word, 0)
-        if count > prev + 2 and count >= 3:  # 今週3回以上、かつ先週より2回以上増加
+        if count > prev + 2 and count >= 3:
             rising.append(word)
     return rising[:5]
 
@@ -100,7 +121,7 @@ def load_performance_insights() -> dict:
         return defaults
 
     try:
-        text  = SUMMARY_PATH.read_text(encoding="utf-8")
+        text    = SUMMARY_PATH.read_text(encoding="utf-8")
         block_m = re.search(r"<!-- machine-readable-start -->(.*?)<!-- machine-readable-end -->",
                             text, re.DOTALL)
         if not block_m:
@@ -131,8 +152,6 @@ def load_knowledge() -> dict:
         "profile":    "01_profile.md",
         "target":     "02_target.md",
         "genre":      "03_genre.md",
-        "writing":    "05_writing.md",
-        "references": "06_references.md",
         "ng_rules":   "07_ng-rules.md",
     }
     return {
@@ -173,7 +192,7 @@ def load_top_posts(n: int = 5) -> str:
     if not scored:
         return "（まだ実績データなし）"
     scored.sort(key=lambda x: x["score"], reverse=True)
-    lines = [f"## 高スコア実績投稿 TOP{n}（構造・トーンを参考にすること）"]
+    lines = [f"## 高スコア実績投稿 TOP{n}（構造・トーン・文体の参考）"]
     for i, p in enumerate(scored[:n], 1):
         lines.append(f"\n### {i}位 score:{p['score']} | {p['topic'][:35]}")
         lines.append(p["body"])
@@ -186,13 +205,11 @@ def load_reply_insights() -> str:
     if not REPLY_INSIGHTS_PATH.exists():
         return "（まだデータなし）"
     try:
-        text = REPLY_INSIGHTS_PATH.read_text(encoding="utf-8")
-        # 直近20件のリプライテキストを返す
+        text    = REPLY_INSIGHTS_PATH.read_text(encoding="utf-8")
         entries = re.findall(r"- \[.+?\] (.+)", text)
         if not entries:
             return "（データ抽出不可）"
-        recent = entries[-20:]
-        return "\n".join(f"- {e}" for e in recent)
+        return "\n".join(f"- {e}" for e in entries[-20:])
     except Exception:
         return "（読み込みエラー）"
 
@@ -240,18 +257,31 @@ GENERATE_PROMPT = """\
 
 ---
 
-## ■ 生成指示（Threads アルゴリズム最適化版）
+## ■ 生成指示（Threads 2026 アルゴリズム最適化版）
 
-### TYPE 比率と文字数上限（厳守）
+### 設計思想（最初に読むこと）
 
-TYPE比率: {type_ratio}
+この投稿の最優先目的は「情報を伝える」ではなく「反応させる」。
+Threads のアルゴリズムが最も評価するシグナルは返信数とスレッド深度。
+情報量を増やすほど読了率が下がり、スコアが下がる。
+「短くて引きが強い」が「長くて正確」に必ず勝つ。
 
-本文（BODY）の文字数上限はTYPEで異なる:
-- TYPE_C（共感）: 目標80〜120字、絶対上限140字
-- TYPE_B（検証）: 目標120〜160字、絶対上限180字
-- TYPE_A（比較）: 目標130〜170字、絶対上限200字
+---
 
-セルフリプライ（SELF_REPLY）: 目標50〜80字、絶対上限100字
+### TYPE 比率と文字数（厳守）
+
+TYPE 比率: {type_ratio}
+
+【本文（BODY）文字数】  絶対上限を超えた場合はその投稿を再生成すること。
+
+- TYPE_C（共感）: 最適 60〜110字 ／ 絶対上限 130字
+- TYPE_B（検証）: 最適 90〜140字 ／ 絶対上限 160字
+- TYPE_A（比較）: 最適 110〜155字 ／ 絶対上限 180字
+
+【セルフリプライ（SELF_REPLY）】
+- 最適 40〜70字 ／ 絶対上限 85字（全 TYPE 共通）
+
+文字数カウントはスペース・改行を除く。
 
 ---
 
@@ -266,56 +296,112 @@ TYPE比率: {type_ratio}
 - 同じテンプレートを連続3件以上使わない
 {template_restriction}
 
----
-
-### 本文 5 原則
-
-**1. 1行目は必ず「止まるフック」**
-以下4種のうちどれかで始める（「実は」「知らない人多い」は全体の2割まで）:
-- 損失回避型:「○○してる人、ちょっと待って」「それ続けると逆効果かも」
-- 驚き・意外型:「○○って実は逆だった」「3年間ずっと間違えてた」
-- 自己開示型:「正直に言う。○○、やめた」「去年まで全然わかってなかった」
-- 問いかけ型:「○○と○○、どっちが先かって決めてる？」
-
-**2. 結論を1行目で言い切らない**
-1行目で問いを立て、中盤に小さな転換（逆転・気づき）を1回入れる。
-
-**3. 末尾は「余白」で終える**
-NGパターン:「みんなはどう思う？コメントして！」
-OKパターン:「これ、私だけじゃないと思うんだけどな」「……また同じもの買ってた」
-→ 読んだ人が自然に反応したくなる余韻を作る。明示的な問いかけは禁止。
-
-**4. 改行設計**
-1〜2文で改行。3行以上の連続テキスト禁止。
-
-**5. 禁止記号の乱用**
-①②③ が3行以上続く / ✗✓ ◎△✗ の表形式 / ────（横線区切り）の多用は禁止。
-テンプレが記号を使う場合も最小限に抑える。
+【テンプレート使用上の注意】
+テンプレートは「構造の骨格」として使い、以下の要素は必ず書き換えること:
+- 「保存して」「コメントで教えて」「ぜひ試してみて」等の CTA フレーズ
+- ◎△✗ の表形式（比較は文章で表現すること）
+- 「実は」「知らない人多い」（全体で2件以内に制限）
 
 ---
 
-### セルフリプライ「2話目」原則
+### 本文 6 原則（全件必須）
 
-セルフリプライは本文の補足・まとめではなく「2話目の書き出し」として書く。
+**原則1. 1行目は「読み続けさせる問い」を作る**
 
-パターン:
-- 追撃型:「でも正直、ここが一番引っかかってて─」（本文の問いを深掘り）
-- 視点反転型:「逆に考えると○○なのかもって思ってて」
-- 着地型:「結論は出てないけど、今は○○してる」
-- 読者主語型:「もしかして同じことしてた人いるかな」
+1行目の役割はスクロールを止めること、そして2行目を読ませること。
+1行目で結論・答え・価値を言い切ることは禁止。
+以下4種のうち1つで始めること:
 
-禁止: 本文のまとめ・要約・手順の続き・補足説明
+▶ 損失回避型（状況提示→危機感）
+  先頭例: 「それ、逆効果かも」「続けてると悪化する」「気づかないうちに○○」
+  NG: 「○○はNG！」（断定で終わり、続きを読む必要がない）
+
+▶ 自己開示型（行動・判断の告白）
+  先頭例: 「正直に言う。○○やめた」「去年まで全然わかってなかった」「3年間ずっと間違えてた」
+  NG: 「私の体験談です」（告白感がなくプロローグで終わっている）
+
+▶ 驚き・反転型（常識との矛盾提示）
+  先頭例: 「○○と○○、順番が逆だった」「高いほうが効くと思ってたけど」「むしろ何もしないほうが」
+  NG: 「○○について知っていますか？」（質問形式の驚き型は弱い）
+
+▶ 共感問いかけ型（読者の状況を名指しする）
+  先頭例: 「○○してるのに何か違う、の正体が分かった」「また同じ悩みが戻ってきた」
+  NG: 「○○に悩んでいる方へ」（宣言型は読者が自分事化しにくい）
+
+**原則2. 中盤に「転換」を1回入れる**
+
+1行目が問いなら、中盤でその答えではなく「意外な角度」を1つ入れる。
+転換は「でも」「ただ」「逆に」「ここが問題で」で始まる1文で表現する。
+転換がない投稿はまっすぐで止まる力がない。
+
+**原則3. 末尾は「コメント余白」で終える**
+
+末尾の役割は「読者が自分の経験を重ねられる隙間を作る」こと。
+OKパターン（余白あり）:
+  「これ、私だけじゃないと思うんだけどな」
+  「……また同じもの買ってた」
+  「結局どっちが正解かは、まだわかってない」
+NGパターン（余白なし）:
+  「みんなはどう思う？コメントして！」 ← 露骨CTA
+  「参考になれば嬉しいです」          ← 完結して余白がない
+  「試してみてね！」                  ← 指示で余白がない
+
+**原則4. 1投稿1論点**
+
+1つの投稿で伝えることは1つだけ。
+2つ以上の主張・比較軸・結論が入ってはいけない。
+
+**原則5. 改行設計（読ませるリズム）**
+
+1〜2文で改行する。3行以上の連続テキスト禁止。
+①②③ の箇条書きは最大2行まで。横線（────）・表形式禁止。
+
+**原則6. 話し言葉の徹底**
+
+「〜です」「〜ます」は使わない。
+友人に話すような一人称トーン。体験の途中にいる人として書く。
+
+---
+
+### セルフリプライ「2話目」設計
+
+セルフリプライは本文の続き・補足・まとめではない。「2話目の1行目」として書く。
+
+セルフリプライを読んだ人が「本文に戻って読み直したくなる」か
+「これってどういうこと？とコメントしたくなる」状態を作る。
+
+使えるパターン:
+- 追撃型:「でも正直、ここが一番引っかかってて─」（本文の問いをさらに深掘り）
+- 反転型:「逆に考えると○○なのかもって思ってて」（本文の前提をひっくり返す）
+- 宙吊り型:「結論は出てないけど、今は○○だけやめてる」（結論の1歩手前で止める）
+- 読者鏡型:「もしかして同じことしてた人、いるかな」（「私もそう」コメントを誘発）
+
+禁止:
+- 「まとめると○○です」      ← 結論（補足型）
+- 「詳しくは○○でも書きます」 ← 宣伝
+- 「参考になれば嬉しいです」  ← 完結
+- 「なので○○を試してください」← CTA
 
 ---
 
 ### 言葉遣い・絶対禁止
 
-- 「〜です」「〜ます」禁止。フラットな話し言葉
-- AI感:「〜ですね」「〜でしょう」「まとめると」「ポイントは」禁止
-- 露骨CTA:「保存して」「コメントして」「フォローして」「役に立ったら」禁止
-- ノウハウ記事風:「〜について解説します」「今回は〜を紹介」禁止
-- 断定禁止。「〜かもしれない」「気がした」「なんだと思う」で書く
-- 同じTYPEを3件連続させない
+表現:
+- 「〜です」「〜ます」「〜ですね」「〜でしょう」
+- 「まとめると」「ポイントは」「〜について解説します」「今回は〜を紹介」
+- 「ちなみに」「そして」「また」「さらに」（接続詞過多→note記事感）
+- 「実は」「知らない人が多い」→ 全体で2件まで。それ以上は使わない
+
+行動指示:
+- 「保存して」「コメントして」「フォローして」「いいねして」
+- 「役に立ったら」「参考になれば」「シェアしてほしい」
+- 「試してみてね」「ぜひやってみて」
+
+構造:
+- 断定表現（「〜です」「〜が正解」「絶対〜」）
+- 3つ以上の連続箇条書き（①②③ が3行以上）
+- 表形式（◎△✗ の縦並び比較）
+- 記事風タイトル→本文（「○○の方法3選」「○○まとめ」）
 
 ---
 
@@ -326,18 +412,21 @@ TYPE: TYPE_A
 TEMPLATE: テンプレ○（テンプレート名）
 TOPIC: （テーマ）
 BODY:
-（本文。文字数上限を厳守。1行目はフック。末尾は余白。）
+（本文。文字数上限を厳守。1行目は「読み続けさせる問い」。中盤に転換1回。末尾はコメント余白。）
 SELF_REPLY:
-（2話目として書いた続き。50〜80字。補足・まとめ禁止。）
+（2話目の1行目として書く。40〜70字。補足・まとめ・結論禁止。）
 ===SELFCHECK===
-1行目フック種別: [損失回避 / 驚き・意外 / 自己開示 / 問いかけ] のどれか
-1行目単体で止まるか: YES / NO
-文字数(本文): ○字（上限○字）
-文字数(セルフリプ): ○字（上限100字）
-末尾余白: あり / なし
-セルフリプ設計: 2話目型 / 補足型
-禁止表現チェック: なし / あり（内容）
+[1] 1行目のフック種別: 損失回避型 / 自己開示型 / 驚き反転型 / 共感問いかけ型
+[2] 1行目を読んだだけで2行目を読みたくなるか: YES / NO → NO なら再生成
+[3] 本文に「転換」が1回入っているか: YES / NO → NO なら再生成
+[4] 末尾にコメント余白があるか: YES / NO → NO なら再生成
+[5] 文字数(本文): ○字（上限○字） → 上限超過なら再生成
+[6] 文字数(セルフリプ): ○字（上限85字） → 上限超過なら再生成
+[7] セルフリプ設計: 追撃型 / 反転型 / 宙吊り型 / 読者鏡型 → 「補足型」なら再生成
+[8] 禁止表現チェック: なし / あり（該当箇所: ） → ありなら再生成
+[9] 1投稿1論点になっているか: YES / NO → NO なら再生成
 ===SELFCHECK===
+※ 再生成条件に該当する場合は修正した投稿を出力すること。
 ===POST_END===
 """
 
@@ -357,10 +446,18 @@ def build_perf_guidance(perf: dict, rising_keywords: list[str]) -> str:
 
 
 def build_type_ratio(perf: dict) -> str:
-    """パフォーマンスデータから動的タイプ比率を返す。データ不足時はデフォルト。"""
-    # 現状はデフォルト比率を返す。データが十分になったら動的化。
-    # TODO: total_posts >= 30 になったら type_stats から動的計算
-    return "A（比較）50% → 8件、B（検証）30% → 4件、C（共感）20% → 3件"
+    """パフォーマンスデータから動的タイプ比率を返す。30件未満はデフォルト。"""
+    if perf["total_posts"] < 30:
+        return "A（比較）50% → 8件、B（検証）30% → 4件、C（共感）20% → 3件"
+
+    best = perf["best_type"]
+    # スコア実績に基づいて最高評価 TYPE の比率を引き上げる
+    if best == "TYPE_C":
+        return "C（共感）40% → 6件、B（検証）35% → 5件、A（比較）25% → 4件"
+    elif best == "TYPE_B":
+        return "B（検証）40% → 6件、A（比較）35% → 5件、C（共感）25% → 4件"
+    else:  # TYPE_A が最高
+        return "A（比較）40% → 6件、B（検証）35% → 5件、C（共感）25% → 4件"
 
 
 def build_template_restriction(perf: dict) -> str:
@@ -383,7 +480,6 @@ def generate_posts(
         profile=knowledge["profile"],
         target=knowledge["target"],
         genre=knowledge["genre"],
-        writing=knowledge["writing"],
         ng_rules=knowledge["ng_rules"],
         templates=TEMPLATES,
         top_posts=top_posts,
@@ -441,6 +537,7 @@ def parse_generated(text: str) -> list[dict]:
 
 
 def append_to_queue(posts: list[dict]) -> int:
+    """生成済み投稿を post_queue.md に atomic_write で追記する。"""
     today        = jst_now().strftime("%Y-%m-%d")
     existing_ids = load_queue_ids()
     today_nums = [
@@ -468,8 +565,10 @@ def append_to_queue(posts: list[dict]) -> int:
             entry += f"<!-- self_reply:\n{post['self_reply']}\n-->\n\n"
         entries.append(entry)
 
-    with open(QUEUE_PATH, "a", encoding="utf-8") as f:
-        f.write("\n".join(entries))
+    # atomic_write: 既存内容を読んで末尾に追記してから原子的に書き込む
+    existing = QUEUE_PATH.read_text(encoding="utf-8") if QUEUE_PATH.exists() else ""
+    new_content = existing.rstrip("\n") + "\n\n" + "\n".join(entries)
+    atomic_write(QUEUE_PATH, new_content)
 
     print(f"[追加] {len(posts)}件を post_queue.md に追加")
     return len(posts)
@@ -478,6 +577,18 @@ def append_to_queue(posts: list[dict]) -> int:
 # ─── メイン ──────────────────────────────────────────────────────
 def main() -> None:
     print(f"=== weekly_job.py 開始 {jst_now().strftime('%Y-%m-%d %H:%M JST')} ===")
+
+    # 冪等性チェック: queue補充チェック時に同日2回実行を防ぐ
+    # WEEKLY_FORCE=1 を設定すれば強制実行
+    is_monday    = os.environ.get("GITHUB_SCHEDULE", "") == "0 22 * * 0"
+    is_dispatch  = os.environ.get("GITHUB_EVENT_NAME", "") == "workflow_dispatch"
+    force        = os.environ.get("WEEKLY_FORCE", "") == "1"
+
+    if not (is_monday or is_dispatch or force):
+        if already_generated_today():
+            print(f"[SKIP] 本日 ({jst_now().strftime('%Y-%m-%d')}) は既に生成済み。終了。")
+            print("       強制実行する場合は WEEKLY_FORCE=1 を設定してください。")
+            sys.exit(0)
 
     # 1. リサーチ + トレンド履歴保存
     print("\n[1/5] 美容トレンドをリサーチ中...")
@@ -498,6 +609,7 @@ def main() -> None:
     perf = load_performance_insights()
     if perf["total_posts"] > 0:
         print(f"  平均スコア: {perf['avg_score']} / 分析投稿数: {perf['total_posts']}件")
+        print(f"  最高評価TYPE: {perf['best_type']} / TYPE比率モード: {'動的' if perf['total_posts'] >= 30 else 'デフォルト'}")
         if perf["low_templates"]:
             print(f"  ⚠️  低スコアテンプレ: {', '.join(perf['low_templates'])}")
     else:
@@ -507,7 +619,7 @@ def main() -> None:
     print("\n[4/5] フィードバックデータを収集中...")
     top_posts      = load_top_posts(n=5)
     reply_insights = load_reply_insights()
-    print(f"  リプライインサイト: 読み込み完了")
+    print("  リプライインサイト: 読み込み完了")
 
     # 5. 投稿生成
     print("\n[5/5] Claude API で投稿生成中（15件）...")
@@ -529,8 +641,12 @@ def main() -> None:
         sys.exit(1)
 
     count  = append_to_queue(posts)
-    queued = QUEUE_PATH.read_text(encoding="utf-8").count("status: queued")
+    queued = len([l for l in QUEUE_PATH.read_text(encoding="utf-8").splitlines()
+                  if l.strip() == "status: queued"])
     print(f"\n=== 完了 | 追加{count}件 | キュー残り{queued}件 ===")
+
+    # 生成ログ記録（冪等性チェック用）
+    record_generation()
 
 
 if __name__ == "__main__":
