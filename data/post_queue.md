@@ -1712,7 +1712,7 @@ created: 2026-04-19
 ---
 id: 2026-04-19-016
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: フェイスパウダー、プレストvsルース、朝の時短重視なら判定基準はこれ [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-19
