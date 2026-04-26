@@ -1800,7 +1800,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-003
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 同じコスメ使ってるのに垢抜けない理由 [テンプレ3（知らなかった情報差型）]
 created: 2026-04-20
