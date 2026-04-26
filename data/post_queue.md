@@ -1829,7 +1829,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-004
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: BBクリーム vs クッションファンデ 時短志向の正解 [テンプレ5（肌タイプ別・診断型）]
 created: 2026-04-20
