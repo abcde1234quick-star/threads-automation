@@ -1898,7 +1898,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-006
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: スキンケアとメイクの「間」を意識してみた [テンプレ1（やりすぎNG逆張り型）]
 created: 2026-04-20
