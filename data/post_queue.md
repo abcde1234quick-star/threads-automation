@@ -1864,7 +1864,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-005
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: チークの位置3パターン、顔の印象が変わる理由 [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-20
