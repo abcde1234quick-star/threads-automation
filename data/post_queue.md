@@ -2031,7 +2031,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-010
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: メイク崩れでイライラしてる人へ [テンプレ2（わかる！共感爆発型）]
 created: 2026-04-20
