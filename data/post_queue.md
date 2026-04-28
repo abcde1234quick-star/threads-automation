@@ -1970,7 +1970,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-008
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 皮脂対策コスメ3種類、効果の出方が違う理由 [テンプレ9（この成分だけ見て成分解説型）]
 created: 2026-04-20
