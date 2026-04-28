@@ -1995,7 +1995,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-009
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: アイシャドウの発色が違う理由を1週間検証 [テンプレ4（before/after変化実感型）]
 created: 2026-04-20
