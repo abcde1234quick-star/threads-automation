@@ -2077,7 +2077,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-011
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: リップティント vs リップグロス、色持ち比較 [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-20
