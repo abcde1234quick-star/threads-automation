@@ -2115,7 +2115,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-012
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: マスカラ3種類の伸び方、比較検証 [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-20
