@@ -2160,7 +2160,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-013
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: ベースメイクの下地、毎日違う製品試してみた [テンプレ8（○○円以下縛り挑戦型）]
 created: 2026-04-20
