@@ -434,30 +434,105 @@ SELF_REPLY:
 def build_perf_guidance(perf: dict, rising_keywords: list[str]) -> str:
     """パフォーマンスデータから生成への指示文を作る。"""
     lines = []
-    if perf["low_templates"]:
-        lines.append(f"⚠️  以下テンプレートは最近スコアが低い。今週は使用頻度を下げること: {', '.join(perf['low_templates'])}")
-    if perf["top_topics"]:
-        lines.append(f"✅ 高スコア実績トピック（関連テーマを優先すること）: {perf['top_topics']}")
+
     if perf["avg_score"] > 0:
         lines.append(f"現在の全体平均スコア: {perf['avg_score']}点 / 分析投稿数: {perf['total_posts']}件")
+
+    if perf["low_templates"]:
+        lines.append(f"⚠️  以下テンプレートは最近スコアが低い。今週は使用頻度を下げること: {', '.join(perf['low_templates'])}")
+
+    if perf["top_topics"]:
+        lines.append(f"✅ 高スコア実績トピック（関連テーマを優先すること）: {perf['top_topics']}")
+
     if rising_keywords:
         lines.append(f"🔥 急上昇キーワード（必ず2件以上でトピックに組み込む）: {', '.join(rising_keywords)}")
+
+    # performance_summary.md からタイプ別スコアとスロット情報を抽出して明示する
+    if SUMMARY_PATH.exists():
+        try:
+            text = SUMMARY_PATH.read_text(encoding="utf-8")
+
+            type_scores: dict[str, float] = {}
+            for m in re.finditer(r"\|\s*(TYPE_[ABC])\s*\|\s*\d+\s*\|\s*\d+%\s*\|\s*([\d.]+)\s*\|", text):
+                type_scores[m.group(1)] = float(m.group(2))
+
+            if type_scores:
+                best_t  = max(type_scores, key=lambda k: type_scores[k])
+                worst_t = min(type_scores, key=lambda k: type_scores[k])
+                lines.append(
+                    "\n📊 タイプ別スコア実績: "
+                    + " / ".join(f"{t}={v}点" for t, v in sorted(type_scores.items()))
+                )
+                lines.append(
+                    f"   → {best_t}（平均{type_scores[best_t]}点）が最高。"
+                    f"今回は{best_t}の構造・トーン・フック種別を最優先で模倣すること。"
+                    f"（{worst_t} 平均{type_scores[worst_t]}点 は比率を下げる）"
+                )
+
+            slot_scores: dict[str, float] = {}
+            for m in re.finditer(r"\|\s*(morning|evening1|evening2)\s*\|\s*\d+\s*\|\s*([\d.]+)\s*\|", text):
+                slot_scores[m.group(1)] = float(m.group(2))
+            if slot_scores:
+                best_slot = max(slot_scores, key=lambda k: slot_scores[k])
+                lines.append(f"   → 最高スコアスロット: {best_slot}（平均{slot_scores[best_slot]}点）")
+
+        except Exception as e:
+            print(f"  [WARN] guidance 拡張解析エラー: {e}")
+
     return "\n".join(lines) if lines else "（パフォーマンスデータなし）"
 
 
 def build_type_ratio(perf: dict) -> str:
-    """パフォーマンスデータから動的タイプ比率を返す。30件未満はデフォルト。"""
-    if perf["total_posts"] < 30:
-        return "A（比較）50% → 8件、B（検証）30% → 4件、C（共感）20% → 3件"
+    """パフォーマンスデータから動的タイプ比率を返す。
 
+    performance_summary.md の「データ駆動タイプ比率推奨」を直接読んで反映する。
+    データが不十分な場合はデフォルト値（A50/B30/C20）を返す。
+    """
+    def ratio_to_counts(ratios: dict) -> str:
+        """{'TYPE_C': 40, 'TYPE_B': 35, 'TYPE_A': 25} -> 生成指示文字列（15件換算）"""
+        total = 15
+        sorted_types = sorted(ratios.items(), key=lambda x: x[1], reverse=True)
+        counts = []
+        assigned = 0
+        for i, (t, pct) in enumerate(sorted_types):
+            label = t.replace("TYPE_", "")
+            name  = {"A": "比較", "B": "検証", "C": "共感"}.get(label, label)
+            n = total - assigned if i == len(sorted_types) - 1 else round(total * pct / 100)
+            assigned += n
+            counts.append(f"{label}（{name}）{pct}% → {n}件")
+        return "、".join(counts)
+
+    # データが少ない場合はデフォルト
+    if perf["total_posts"] < 10:
+        return ratio_to_counts({"TYPE_A": 50, "TYPE_B": 30, "TYPE_C": 20})
+
+    # performance_summary.md の推奨比率セクションを直接読む
+    # 「- TYPE_C: 現在 22% → 推奨 37% ↑」のような行を抽出
+    recommended: dict[str, int] = {}
+    if SUMMARY_PATH.exists():
+        try:
+            text = SUMMARY_PATH.read_text(encoding="utf-8")
+            for m in re.finditer(
+                r"-\s*(TYPE_[ABC]):\s*現在\s*\d+%\s*→\s*推奨\s*(\d+)%", text
+            ):
+                recommended[m.group(1)] = int(m.group(2))
+        except Exception:
+            pass
+
+    if len(recommended) == 3:
+        total_pct = sum(recommended.values())
+        if total_pct > 0:
+            normalized = {k: round(v * 100 / total_pct) for k, v in recommended.items()}
+            return ratio_to_counts(normalized)
+
+    # フォールバック: best_type ベースの固定パターン
     best = perf["best_type"]
-    # スコア実績に基づいて最高評価 TYPE の比率を引き上げる
     if best == "TYPE_C":
-        return "C（共感）40% → 6件、B（検証）35% → 5件、A（比較）25% → 4件"
+        return ratio_to_counts({"TYPE_C": 40, "TYPE_B": 35, "TYPE_A": 25})
     elif best == "TYPE_B":
-        return "B（検証）40% → 6件、A（比較）35% → 5件、C（共感）25% → 4件"
-    else:  # TYPE_A が最高
-        return "A（比較）40% → 6件、B（検証）35% → 5件、C（共感）25% → 4件"
+        return ratio_to_counts({"TYPE_B": 40, "TYPE_A": 35, "TYPE_C": 25})
+    else:
+        return ratio_to_counts({"TYPE_A": 40, "TYPE_B": 35, "TYPE_C": 25})
 
 
 def build_template_restriction(perf: dict) -> str:
