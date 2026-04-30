@@ -390,3 +390,5 @@ COSRX ビタミンC23%セラム→¥2,480
 [POST] 2026-04-30 20:03 JST | slot:evening1 date:2026-04-30 | ID:2026-04-20-014 | threads_id:17939281917036650
 [CLAIM] 2026-04-30 21:49:35 JST | slot:evening2 date:2026-04-30 | nonce:628.218189
 [POST] 2026-04-30 21:50 JST | slot:evening2 date:2026-04-30 | ID:2026-04-20-015 | threads_id:18590033224057108
+[CLAIM] 2026-05-01 08:15:55 JST | slot:morning date:2026-05-01 | nonce:1834.870433
+[POST] 2026-05-01 08:17 JST | slot:morning date:2026-05-01 | ID:2026-04-20-016 | threads_id:18092600294176745

@@ -2276,7 +2276,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-016
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: スキンケアとメイクの「間」を意識してみた [テンプレ4（before/after変化実感型）]
 created: 2026-04-20
