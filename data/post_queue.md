@@ -2196,7 +2196,7 @@ created: 2026-04-20
 ---
 id: 2026-04-20-014
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: メイク初心者あるある「道具と手順の悩み」 [テンプレ2（わかる！共感爆発型）]
 created: 2026-04-20
