@@ -2237,7 +2237,7 @@ YouTubeで見てるはずなのに
 ---
 id: 2026-04-20-015
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ファンデーションのカバー力、選び方の正解 [テンプレ5（肌タイプは？診断型）]
 created: 2026-04-20
