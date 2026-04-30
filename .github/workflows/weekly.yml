@@ -43,6 +43,17 @@ jobs:
           echo "queued=$COUNT" >> $GITHUB_OUTPUT
           echo "キュー残り: ${COUNT}件"
 
+      - name: Analyze performance before generation
+        # 生成前に最新の分析を実行して performance_summary.md を更新する
+        # キュー補充が必要な場合（≤5件）・月曜定期・手動実行のすべてで走らせる
+        if: ${{ github.event.schedule == '0 22 * * 0' || github.event_name == 'workflow_dispatch' || fromJson(steps.queue_check.outputs.queued) <= 5 }}
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+        run: |
+          echo "=== 投稿生成前に分析を実行 ==="
+          python scripts/fetch_metrics.py || echo "[WARN] fetch_metrics.py 失敗（分析は続行）"
+          python scripts/analyze_performance.py
+
       - name: Run weekly job
         # 月曜定期 or キューが5件以下のときだけ実行
         if: ${{ github.event.schedule == '0 22 * * 0' || github.event_name == 'workflow_dispatch' || fromJson(steps.queue_check.outputs.queued) <= 5 }}
@@ -60,6 +71,6 @@ jobs:
           git config user.email "threads-bot@users.noreply.github.com"
           git add data/
           git diff --staged --quiet && echo "変更なし（スキップ）" && exit 0
-          git commit -m "weekly: 投稿生成 $(TZ='Asia/Tokyo' date '+%Y-%m-%d')"
+          git commit -m "weekly: 分析→投稿生成 $(TZ='Asia/Tokyo' date '+%Y-%m-%d')"
           git pull --rebase origin main
           git push origin main

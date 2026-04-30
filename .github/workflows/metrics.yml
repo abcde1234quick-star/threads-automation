@@ -1,8 +1,9 @@
-name: Threads メトリクス取得 & パフォーマンス分析（毎日 22:00 JST）
+name: Threads メトリクス取得 & パフォーマンス分析（月・木 23:00 JST）
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 22:00 JST（13:00 UTC）— post_evening2（12:00 UTC）と1時間ずらす
+    - cron: "0 14 * * 1"   # 月曜 23:00 JST（14:00 UTC）
+    - cron: "0 14 * * 4"   # 木曜 23:00 JST（14:00 UTC）
   workflow_dispatch:
 
 concurrency:
