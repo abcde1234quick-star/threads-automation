@@ -2312,7 +2312,7 @@ created: 2026-04-20
 ---
 id: 2026-04-27-001
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: メイク直しのルーティン、毎日同じやり方で本当に正解？ [テンプレ2（共感爆発型）]
 created: 2026-04-27
