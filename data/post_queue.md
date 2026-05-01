@@ -2357,7 +2357,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-003
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 20代の自分に言いたい美容のこと [テンプレ10（○代の私へタイムスリップ型）]
 created: 2026-04-27
