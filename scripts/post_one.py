@@ -211,22 +211,17 @@ def main() -> None:
     print(f"=== post_one.py 開始 {jst_now().strftime('%Y-%m-%d %H:%M JST')} ===")
     print(f"[スロット] {SLOT}")
 
-    # 1. ランダム遅延（±30分ウィンドウを均等に埋める）
-    delay = random.randint(0, 3600)  # 0〜60分
-    print(f"[遅延] {delay // 60}分{delay % 60}秒待機...")
-    time.sleep(delay)
-
-    # 2. スロットガード（[POST] / [CLAIM] 両方を確認）
+    # 1. スロットガード（[POST] / [CLAIM] 両方を確認）
     if already_posted_today(SLOT):
         print(f"[スキップ] slot:{SLOT} は本日投稿済みまたは確保済み。終了。")
         sys.exit(0)
 
-    # 3. スロット確保（TOCTOU 対策）― API 呼び出し前に [CLAIM] を書き込む
+    # 2. スロット確保（TOCTOU 対策）― API 呼び出し前に [CLAIM] を書き込む
     if not claim_slot(SLOT):
         print(f"[スキップ] slot:{SLOT} のスロット確保に失敗。別ジョブが先着。終了。")
         sys.exit(0)
 
-    # 4. キューから1件取得
+    # 3. キューから1件取得
     posts = parse_queue()
     if not posts:
         print("[INFO] 投稿キューが空です。")
@@ -236,23 +231,23 @@ def main() -> None:
     print(f"[投稿] ID:{post['id']} TYPE:{post['type']}")
     print(f"本文({len(post['body'])}字): {post['body'][:60]}...")
 
-    # 5. コンテナ作成
+    # 4. コンテナ作成
     container_id = create_container(post["body"])
     if not container_id:
         sys.exit(1)
 
-    # 6. 30秒待機（Threads API 推奨）
+    # 5. 30秒待機（Threads API 推奨）
     print("30秒待機（API推奨）...")
     time.sleep(30)
 
-    # 7. 公開
+    # 6. 公開
     post_id = publish_container(container_id)
     if not post_id:
         sys.exit(1)
 
     print(f"[完了] post_id={post_id}")
 
-    # 8. セルフリプライ
+    # 7. セルフリプライ
     reply_id = None
     if post.get("self_reply"):
         reply_id = post_self_reply(post["self_reply"], post_id)
