@@ -1,8 +1,8 @@
-name: Threads 投稿 朝（08:00±30分）
+name: Threads 投稿 朝（08:30 JST）
 
 on:
   schedule:
-    - cron: "30 22 * * *"   # 07:30 JST（前日 22:30 UTC）→ 0〜60分遅延で 07:30〜08:30 JST に投稿
+    - cron: "30 23 * * *"   # 08:30 JST（23:30 UTC）
 
 concurrency:
   group: threads-morning
