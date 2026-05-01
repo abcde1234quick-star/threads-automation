@@ -2334,7 +2334,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-002
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 毎日の保湿ケア、量が多いほど効くと思ってた話 [テンプレ1（やりすぎNG逆張り型）]
 created: 2026-04-27
