@@ -2425,7 +2425,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-006
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 肌の「崩れパターン」で選ぶべきベースが変わる話 [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-27
