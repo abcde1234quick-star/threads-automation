@@ -2401,7 +2401,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-005
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: ファンデーションの「タッチアップ」の正しい意味を美容部員に教えてもらった [テンプレ3（知らなかった情報差型）]
 created: 2026-04-27
