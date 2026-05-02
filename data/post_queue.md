@@ -2379,7 +2379,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-004
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: クッションファンデの密着時間を3分変えた話 [テンプレ4（before/after変化実感型）]
 created: 2026-04-27
