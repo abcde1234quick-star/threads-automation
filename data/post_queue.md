@@ -2490,7 +2490,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-009
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: コスメの色選びで失敗する理由、全部同じかもしれない [テンプレ2（共感爆発型）]
 created: 2026-04-27
