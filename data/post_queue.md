@@ -2469,7 +2469,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-008
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: デパコスアイシャドウ使い続けて気づいたプチプラの方が優秀な瞬間 [テンプレ6（コスパ最強プチプラ暴露型）]
 created: 2026-04-27
