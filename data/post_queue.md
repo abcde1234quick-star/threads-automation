@@ -2536,7 +2536,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-011
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: 朝のスキンケア時間を短縮したら肌が整った話 [テンプレ1（やりすぎNG逆張り型）]
 created: 2026-04-27
