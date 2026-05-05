@@ -2629,7 +2629,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-015
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: 肌悩みが「本当の悩み」か「スキンケア不足」か見分ける方法 [テンプレ5（あなたのタイプは？診断型）]
 created: 2026-04-27
