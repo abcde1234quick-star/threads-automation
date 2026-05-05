@@ -2605,7 +2605,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-014
 type: TYPE_A
-status: queued
+status: posted
 source: weekly_job
 topic: コスメ成分表で最初に見るべき「1つの成分」 [テンプレ9（この成分だけ見て成分解説型）]
 created: 2026-04-27
