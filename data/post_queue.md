@@ -2583,7 +2583,7 @@ created: 2026-04-27
 ---
 id: 2026-04-27-013
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: ファンデーション、スポンジの湿り度を変えて2週間使った話 [テンプレ4（before/after変化実感型）]
 created: 2026-04-27
