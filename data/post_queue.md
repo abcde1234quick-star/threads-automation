@@ -2650,7 +2650,7 @@ created: 2026-04-27
 ---
 id: 2026-05-04-001
 type: TYPE_C
-status: queued
+status: posted
 source: weekly_job
 topic: メイク下地の待ち時間問題 [テンプレ2（わかる！共感爆発型）]
 created: 2026-05-04
