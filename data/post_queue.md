@@ -2672,7 +2672,7 @@ created: 2026-05-04
 ---
 id: 2026-05-04-002
 type: TYPE_B
-status: queued
+status: posted
 source: weekly_job
 topic: スキンケア後の待ち時間実験 [テンプレ4（before/after変化実感型）]
 created: 2026-05-04
